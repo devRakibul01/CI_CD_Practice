@@ -17,5 +17,10 @@ namespace TestAPIForCI_CD.Controllers
         {
             return Ok("Md Rakibul Islam");
         }
+        [HttpGet("age")]
+        public IActionResult GetAGe()
+        {
+            return Ok("Md Rakibul Islam");
+        }
     }
 }
