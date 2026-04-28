@@ -1,4 +1,4 @@
-name: .NET CI-CD
+name: ASP.NET CI-CD Pipeline
 
 on:
   push:
@@ -6,7 +6,7 @@ on:
 
 jobs:
   build:
-    runs-on: windows-latest
+    runs-on: self-hosted
 
     steps:
     - name: Checkout code
@@ -17,24 +17,24 @@ jobs:
       with:
         dotnet-version: '6.0.x'
 
-    - name: Restore
+    - name: Restore packages
       run: dotnet restore
 
-    - name: Build
+    - name: Build project
       run: dotnet build --configuration Release
 
-    - name: Test
+    - name: Test project
       run: dotnet test
 
-    - name: Publish
-      run: dotnet publish -c Release -o D:\Published\CICDAPI
+    - name: Ensure publish folder exists
+      run: mkdir D:\Published\CICDAPI
 
-    - name: Check Publish Folder
-      run: dir D:\Published\CICDAPI
+    - name: Publish project
+      run: dotnet publish -c Release -o D:\Published\CICDAPI
 
   deploy:
     needs: build
-    runs-on: windows-latest
+    runs-on: self-hosted
 
     steps:
     - name: Deploy to IIS
