@@ -29,6 +29,13 @@ jobs:
     - name: Publish
       run: dotnet publish -c Release -o D:\Published\CICDAPI
 
+    - name: Check Publish Folder
+      run: dir D:\Published\CICDAPI
+
+  deploy:
+    needs: build
+    runs-on: windows-latest
+
+    steps:
     - name: Deploy to IIS
-      run: |
-        xcopy /E /Y D:\Published\CICDAPI\* "C:\inetpub\wwwroot\TestingCICD"
+      run: robocopy D:\Published\CICDAPI C:\inetpub\wwwroot\TestingCICD /MIR
