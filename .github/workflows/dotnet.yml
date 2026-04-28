@@ -12,24 +12,22 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v3
 
-    - name: Setup .NET
-      uses: actions/setup-dotnet@v3
-      with:
-        dotnet-version: '6.0.x'
+    - name: Check .NET version
+      run: dotnet --version
 
-    - name: Restore packages
+    - name: Restore
       run: dotnet restore
 
-    - name: Build project
+    - name: Build
       run: dotnet build --configuration Release
 
-    - name: Test project
+    - name: Test
       run: dotnet test
 
-    - name: Ensure publish folder exists
+    - name: Ensure publish folder
       run: mkdir D:\Published\CICDAPI
 
-    - name: Publish project
+    - name: Publish
       run: dotnet publish -c Release -o D:\Published\CICDAPI
 
   deploy:
