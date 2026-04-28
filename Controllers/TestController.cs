@@ -12,5 +12,10 @@ namespace TestAPIForCI_CD.Controllers
         {
             return Ok("Hello, World!");
         }
+        [HttpGet("name")]
+        public IActionResult GetName()
+        {
+            return Ok("Md Rakibul Islam");
+        }
     }
 }
