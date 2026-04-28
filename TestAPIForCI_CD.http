@@ -1,0 +1,6 @@
+@TestAPIForCI_CD_HostAddress = http://localhost:5241
+
+GET {{TestAPIForCI_CD_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
