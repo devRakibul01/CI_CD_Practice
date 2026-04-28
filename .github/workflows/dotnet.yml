@@ -15,20 +15,21 @@ jobs:
     - name: Check .NET version
       run: dotnet --version
 
-    - name: Restore
+    - name: Restore packages
       run: dotnet restore
 
-    - name: Build
+    - name: Build project
       run: dotnet build --configuration Release
 
-    - name: Test
+    - name: Test project
       run: dotnet test
 
-    - name: Ensure publish folder
-      run: mkdir D:\Published\CICDAPI
+    - name: Ensure publish folder exists
+      run: New-Item -ItemType Directory -Force -Path D:\Published\CICDAPI
 
-    - name: Publish
+    - name: Publish project
       run: dotnet publish -c Release -o D:\Published\CICDAPI
+
 
   deploy:
     needs: build
