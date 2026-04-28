@@ -1,0 +1,41 @@
+name: .NET CI-CD
+
+on:
+  push:
+    branches: [ "main" ]
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v3
+      with:
+        dotnet-version: '6.0.x'
+
+    - name: Restore
+      run: dotnet restore
+
+    - name: Build
+      run: dotnet build --configuration Release
+
+    - name: Test
+      run: dotnet test
+
+    - name: Publish
+      run: dotnet publish -c Release -o D:\Published\CICDAPI
+
+    - name: Check Publish Folder
+      run: dir D:\Published\CICDAPI
+
+  deploy:
+    needs: build
+    runs-on: windows-latest
+
+    steps:
+    - name: Deploy to IIS
+      run: robocopy D:\Published\CICDAPI C:\inetpub\wwwroot\TestingCICD /MIR
