@@ -12,7 +12,7 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
 
-    # setup-dotnet বাদ দেওয়া হয়েছে কারণ আপনার পিসিতে এটা অলরেডি আছে
+    # আপনার পিসিতে .NET আগে থেকেই আছে তাই সরাসরি ব্যবহার করা হচ্ছে
     - name: Restore
       run: dotnet restore
 
@@ -31,34 +31,43 @@ jobs:
         shell: powershell
 
     steps:
-    # ১. IIS App Pool বন্ধ করা
+    # ১. IIS App Pool বন্ধ করা (appcmd ব্যবহার করে যা পারমিশন এরর দেয় না সহজে)
     - name: Stop IIS App Pool
       run: |
-        Import-Module WebAdministration
+        $appCmd = "C:\Windows\System32\inetsrv\appcmd.exe"
         $poolName = "TestingCICD"
-        if (Get-WebAppPoolState -Name $poolName) {
-            Write-Host "Stopping App Pool: $poolName"
-            Stop-WebAppPool -Name $poolName
-            Start-Sleep -s 5 # ফাইল লক ছাড়ার জন্য ৫ সেকেন্ড বিরতি
-        }
+        Write-Host "Checking App Pool: $poolName"
+        
+        # App Pool বন্ধ করার কমান্ড
+        & $appCmd stop apppool /apppool.name:$poolName /text:TRUE
+        
+        # প্রসেস পুরোপুরি রিলিজ হওয়ার জন্য একটু সময় দেওয়া
+        Write-Host "Waiting for IIS to release file locks..."
+        Start-Sleep -s 10
+      continue-on-error: true # যদি অলরেডি বন্ধ থাকে তবে যেন পরবর্তী স্টেপগুলো চলে
 
-    # ২. পুরনো ফাইল ডিলিট করে নতুন পাবলিশ করা
+    # ২. পুরনো ফাইল ক্লিন এবং নতুন পাবলিশ
     - name: Clean and Publish
       run: |
         $deployPath = "D:\Deploy\TestingCICD"
+        
         if (Test-Path $deployPath) {
-            Write-Host "Cleaning old files..."
-            Remove-Item -Recurse -Force "$deployPath\*" -ErrorAction SilentlyContinue
+            Write-Host "Cleaning directory: $deployPath"
+            # সব ফাইল ফোর্স ডিলিট করার চেষ্টা
+            Get-ChildItem -Path $deployPath -Recurse | Remove-Item -Force -Recurse -ErrorAction SilentlyContinue
         } else {
             New-Item -ItemType Directory -Force -Path $deployPath
         }
         
+        Write-Host "Publishing new build..."
         dotnet publish -c Release -o $deployPath --no-restore
 
     # ৩. IIS App Pool আবার চালু করা
     - name: Start IIS App Pool
       run: |
-        Import-Module WebAdministration
+        $appCmd = "C:\Windows\System32\inetsrv\appcmd.exe"
         $poolName = "TestingCICD"
-        Start-WebAppPool -Name $poolName
+        
+        Write-Host "Starting App Pool: $poolName"
+        & $appCmd start apppool /apppool.name:$poolName /text:TRUE
         Write-Host "Deployment Completed Successfully!"
