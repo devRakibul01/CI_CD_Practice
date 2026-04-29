@@ -22,5 +22,10 @@ namespace TestAPIForCI_CD.Controllers
         {
             return Ok("I am 10 years old now bujheco");
         }
+        [HttpGet("address")]
+        public IActionResult GetAaddress()
+        {
+            return Ok("I Come from jhenaidah");
+        }
     }
 }
