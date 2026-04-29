@@ -24,7 +24,7 @@ jobs:
     - name: Test project
       run: dotnet test
 
-    - name: Ensure publish folder exists
+    - name: Ensure publish folder
       run: New-Item -ItemType Directory -Force -Path D:\Published\CICDAPI
 
     - name: Publish project
@@ -36,5 +36,18 @@ jobs:
     runs-on: self-hosted
 
     steps:
-    - name: Deploy to IIS
-      run: robocopy D:\Published\CICDAPI C:\inetpub\wwwroot\TestingCICD /MIR
+    - name: Ensure deploy folder
+      run: New-Item -ItemType Directory -Force -Path D:\Deploy\TestingCICD
+
+    - name: Stop IIS App Pool
+      run: |
+        Import-Module WebAdministration
+        Stop-WebAppPool -Name "TestingCICD"
+
+    - name: Deploy files
+      run: robocopy D:\Published\CICDAPI D:\Deploy\TestingCICD /MIR
+
+    - name: Start IIS App Pool
+      run: |
+        Import-Module WebAdministration
+        Start-WebAppPool -Name "TestingCICD"
