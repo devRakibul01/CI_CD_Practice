@@ -13,22 +13,16 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v3
 
-    - name: Check .NET version
-      run: dotnet --version
-
-    - name: Restore packages
+    - name: Restore
       run: dotnet restore
 
-    - name: Build project
+    - name: Build
       run: dotnet build --configuration Release
 
-    - name: Test project
+    - name: Test
       run: dotnet test
 
-    - name: Ensure publish folder
-      run: New-Item -ItemType Directory -Force -Path D:\Published\CICDAPI
-
-    - name: Publish project
+    - name: Publish
       run: dotnet publish -c Release -o D:\Published\CICDAPI
 
 
@@ -38,23 +32,24 @@ jobs:
 
     steps:
 
-    - name: Stop IIS App Pool (unlock DLL)
+    # 🔥 STEP 1: STOP IIS (IMPORTANT - FIX LOCK ISSUE)
+    - name: Stop IIS App Pool
       run: |
         Import-Module WebAdministration
         Stop-WebAppPool -Name "TestingCICD"
 
-    - name: Ensure deploy folder
-      run: New-Item -ItemType Directory -Force -Path D:\Deploy\TestingCICD
-
-    - name: Deploy files (force overwrite)
+    # 🔥 STEP 2: CLEAN DEPLOY FOLDER
+    - name: Clean Deploy Folder
       run: |
-        robocopy D:\Published\CICDAPI D:\Deploy\TestingCICD /MIR /R:1 /W:1 /IS /IT /COPY:DAT
-        exit 0
+        Remove-Item -Recurse -Force D:\Deploy\TestingCICD -ErrorAction SilentlyContinue
+        New-Item -ItemType Directory -Force -Path D:\Deploy\TestingCICD
 
-    - name: Start IIS App Pool (reload app)
+    # 🔥 STEP 3: DEPLOY FILES
+    - name: Deploy Files
+      run: robocopy D:\Published\CICDAPI D:\Deploy\TestingCICD /MIR /R:2 /W:2
+
+    # 🔥 STEP 4: START IIS AGAIN
+    - name: Start IIS App Pool
       run: |
         Import-Module WebAdministration
         Start-WebAppPool -Name "TestingCICD"
-
-    - name: Deployment complete
-      run: echo "Deployment successful 🚀"
