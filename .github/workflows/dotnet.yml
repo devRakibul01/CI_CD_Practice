@@ -12,11 +12,7 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
 
-    - name: Setup .NET
-      uses: actions/setup-dotnet@v3
-      with:
-        dotnet-version: '8.0.x' # Apnar project er version onujayi change korun
-
+    # setup-dotnet বাদ দেওয়া হয়েছে কারণ আপনার পিসিতে এটা অলরেডি আছে
     - name: Restore
       run: dotnet restore
 
@@ -35,46 +31,34 @@ jobs:
         shell: powershell
 
     steps:
-    # 1. STOP IIS APP POOL (Check if exists and stop)
+    # ১. IIS App Pool বন্ধ করা
     - name: Stop IIS App Pool
       run: |
         Import-Module WebAdministration
         $poolName = "TestingCICD"
-        if (Test-Path "IIS:\AppPools\$poolName") {
+        if (Get-WebAppPoolState -Name $poolName) {
             Write-Host "Stopping App Pool: $poolName"
             Stop-WebAppPool -Name $poolName
-            # Process bondho hote thakay kichu somoy opekkha kora bhalo
-            Start-Sleep -s 5
-        } else {
-            Write-Warning "App Pool $poolName found hoyni!"
+            Start-Sleep -s 5 # ফাইল লক ছাড়ার জন্য ৫ সেকেন্ড বিরতি
         }
 
-    # 2. CLEAN OLD FILES & PUBLISH
+    # ২. পুরনো ফাইল ডিলিট করে নতুন পাবলিশ করা
     - name: Clean and Publish
       run: |
         $deployPath = "D:\Deploy\TestingCICD"
         if (Test-Path $deployPath) {
-            Write-Host "Cleaning directory: $deployPath"
+            Write-Host "Cleaning old files..."
             Remove-Item -Recurse -Force "$deployPath\*" -ErrorAction SilentlyContinue
         } else {
             New-Item -ItemType Directory -Force -Path $deployPath
         }
         
-        Write-Host "Publishing new files..."
-        dotnet publish -c Release -o $deployPath
+        dotnet publish -c Release -o $deployPath --no-restore
 
-    # 3. START IIS APP POOL
+    # ৩. IIS App Pool আবার চালু করা
     - name: Start IIS App Pool
       run: |
         Import-Module WebAdministration
         $poolName = "TestingCICD"
-        if (Test-Path "IIS:\AppPools\$poolName") {
-            Write-Host "Starting App Pool: $poolName"
-            Start-WebAppPool -Name $poolName
-        }
-
-    # 4. VERIFY DEPLOYMENT
-    - name: Verify Status
-      run: |
-        Import-Module WebAdministration
-        Get-WebAppPoolState -Name "TestingCICD"
+        Start-WebAppPool -Name $poolName
+        Write-Host "Deployment Completed Successfully!"
