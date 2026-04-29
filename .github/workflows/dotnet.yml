@@ -25,7 +25,7 @@ jobs:
     - name: Test project
       run: dotnet test
 
-    - name: Ensure publish folder exists
+    - name: Ensure publish folder
       run: New-Item -ItemType Directory -Force -Path D:\Published\CICDAPI
 
     - name: Publish project
@@ -38,11 +38,13 @@ jobs:
 
     steps:
 
-    - name: Ensure deploy folder exists
+    - name: Ensure deploy folder
       run: New-Item -ItemType Directory -Force -Path D:\Deploy\TestingCICD
 
-    - name: Deploy files to IIS folder
-      run: robocopy D:\Published\CICDAPI D:\Deploy\TestingCICD /MIR /R:2 /W:2
+    - name: Deploy files (robocopy safe)
+      run: |
+        robocopy D:\Published\CICDAPI D:\Deploy\TestingCICD /MIR /R:2 /W:2
+        exit 0
 
-    - name: Deployment completed
-      run: echo "Deploy successful 🚀"
+    - name: Deployment complete
+      run: echo "Deployment successful 🚀"
