@@ -20,7 +20,7 @@ namespace TestAPIForCI_CD.Controllers
         [HttpGet("age")]
         public IActionResult GetAGe()
         {
-            return Ok("Md Rakibul Islam");
+            return Ok("I am 10 years old now");
         }
     }
 }
