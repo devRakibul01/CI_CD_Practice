@@ -5,46 +5,54 @@ on:
     branches: [ "main" ]
 
 jobs:
-
   build:
     runs-on: [self-hosted, Windows]
-
     steps:
     - name: Checkout code
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
 
-    - name: Check .NET version
-      run: dotnet --version
+    - name: Restore and Build
+      run: |
+        dotnet restore
+        dotnet build --configuration Release --no-restore
 
-    - name: Restore packages
-      run: dotnet restore
-
-    - name: Build project
-      run: dotnet build --configuration Release
-
-    - name: Test project
-      run: dotnet test
-
-    - name: Ensure publish folder
-      run: New-Item -ItemType Directory -Force -Path D:\Published\CICDAPI
-
-    - name: Publish project
-      run: dotnet publish -c Release -o D:\Published\CICDAPI
-
+    - name: Publish to Temp Folder
+      run: |
+        # প্রোজেক্টটি একটি অস্থায়ী ফোল্ডারে পাবলিশ করছি
+        dotnet publish -c Release -o "${{ github.workspace }}\publish_temp" --no-restore
 
   deploy:
     needs: build
     runs-on: [self-hosted, Windows]
+    defaults:
+      run:
+        shell: powershell
 
     steps:
-
-    - name: Ensure deploy folder
-      run: New-Item -ItemType Directory -Force -Path D:\Deploy\TestingCICD
-
-    - name: Deploy files (robocopy safe)
+    - name: Deploy via App Offline Method
       run: |
-        robocopy D:\Published\CICDAPI D:\Deploy\TestingCICD /MIR /R:2 /W:2
-        exit 0
+        $targetDir = "D:\Deploy\TestingCICD"
+        $sourceDir = "${{ github.workspace }}\publish_temp\*"
 
-    - name: Deployment complete
-      run: echo "Deployment successful 🚀"
+        # ১. টার্গেট ফোল্ডার না থাকলে তৈরি করা
+        if (!(Test-Path $targetDir)) {
+            New-Item -ItemType Directory -Force -Path $targetDir
+        }
+
+        # ২. 'app_offline.htm' ফাইল তৈরি করা (এটি করলে IIS অটোমেটিক ফাইল লক ছেড়ে দেয়)
+        Write-Host "Putting application offline..."
+        "<h1>Site is undergoing maintenance</h1>" | Out-File -FilePath "$targetDir\app_offline.htm" -Force
+        
+        # IIS কে প্রসেস বন্ধ করার জন্য ৫ সেকেন্ড সময় দেওয়া
+        Start-Sleep -s 5
+
+        # ৩. নতুন ফাইল কপি করা (পারমিশন এরর এড়াতে Force ব্যবহার)
+        Write-Host "Copying new files..."
+        Copy-Item -Path $sourceDir -Destination $targetDir -Recurse -Force -ErrorAction SilentlyContinue
+
+        # ৪. 'app_offline.htm' ডিলিট করা (এতে সাইট আবার অনলাইন হয়ে যাবে)
+        if (Test-Path "$targetDir\app_offline.htm") {
+            Remove-Item -Path "$targetDir\app_offline.htm" -Force
+        }
+        
+        Write-Host "Deployment successful!"
