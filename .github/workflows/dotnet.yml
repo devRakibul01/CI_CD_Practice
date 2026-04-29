@@ -5,8 +5,9 @@ on:
     branches: [ "main" ]
 
 jobs:
+
   build:
-    runs-on: self-hosted
+    runs-on: [self-hosted, Windows]
 
     steps:
     - name: Checkout code
@@ -33,7 +34,7 @@ jobs:
 
   deploy:
     needs: build
-    runs-on: self-hosted
+    runs-on: [self-hosted, Windows]
 
     steps:
     - name: Ensure deploy folder
