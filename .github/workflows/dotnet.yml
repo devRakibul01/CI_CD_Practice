@@ -22,9 +22,6 @@ jobs:
     - name: Test
       run: dotnet test
 
-    - name: Publish
-      run: dotnet publish -c Release -o D:\Published\CICDAPI
-
 
   deploy:
     needs: build
@@ -32,23 +29,23 @@ jobs:
 
     steps:
 
-    # 🔥 STEP 1: STOP IIS (IMPORTANT - FIX LOCK ISSUE)
+    # 🔥 1. STOP IIS (IMPORTANT - FIX LOCK)
     - name: Stop IIS App Pool
       run: |
         Import-Module WebAdministration
         Stop-WebAppPool -Name "TestingCICD"
 
-    # 🔥 STEP 2: CLEAN DEPLOY FOLDER
-    - name: Clean Deploy Folder
+    # 🔥 2. CLEAN OLD FILES
+    - name: Clean deploy folder
       run: |
         Remove-Item -Recurse -Force D:\Deploy\TestingCICD -ErrorAction SilentlyContinue
         New-Item -ItemType Directory -Force -Path D:\Deploy\TestingCICD
 
-    # 🔥 STEP 3: DEPLOY FILES
-    - name: Deploy Files
-      run: robocopy D:\Published\CICDAPI D:\Deploy\TestingCICD /MIR /R:2 /W:2
+    # 🔥 3. PUBLISH (NOW SAFE)
+    - name: Publish
+      run: dotnet publish -c Release -o D:\Deploy\TestingCICD
 
-    # 🔥 STEP 4: START IIS AGAIN
+    # 🔥 4. START IIS
     - name: Start IIS App Pool
       run: |
         Import-Module WebAdministration
