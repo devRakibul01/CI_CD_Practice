@@ -5,48 +5,76 @@ on:
     branches: [ "main" ]
 
 jobs:
-
   build:
     runs-on: [self-hosted, Windows]
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v3
+      with:
+        dotnet-version: '8.0.x' # Apnar project er version onujayi change korun
 
     - name: Restore
       run: dotnet restore
 
     - name: Build
-      run: dotnet build --configuration Release
+      run: dotnet build --configuration Release --no-restore
 
     - name: Test
-      run: dotnet test
-
+      run: dotnet test --no-build --verbosity normal
 
   deploy:
     needs: build
     runs-on: [self-hosted, Windows]
+    
+    defaults:
+      run:
+        shell: powershell
 
     steps:
-
-    # 🔥 1. STOP IIS (IMPORTANT - FIX LOCK)
+    # 1. STOP IIS APP POOL (Check if exists and stop)
     - name: Stop IIS App Pool
       run: |
         Import-Module WebAdministration
-        Stop-WebAppPool -Name "TestingCICD"
+        $poolName = "TestingCICD"
+        if (Test-Path "IIS:\AppPools\$poolName") {
+            Write-Host "Stopping App Pool: $poolName"
+            Stop-WebAppPool -Name $poolName
+            # Process bondho hote thakay kichu somoy opekkha kora bhalo
+            Start-Sleep -s 5
+        } else {
+            Write-Warning "App Pool $poolName found hoyni!"
+        }
 
-    # 🔥 2. CLEAN OLD FILES
-    - name: Clean deploy folder
+    # 2. CLEAN OLD FILES & PUBLISH
+    - name: Clean and Publish
       run: |
-        Remove-Item -Recurse -Force D:\Deploy\TestingCICD -ErrorAction SilentlyContinue
-        New-Item -ItemType Directory -Force -Path D:\Deploy\TestingCICD
+        $deployPath = "D:\Deploy\TestingCICD"
+        if (Test-Path $deployPath) {
+            Write-Host "Cleaning directory: $deployPath"
+            Remove-Item -Recurse -Force "$deployPath\*" -ErrorAction SilentlyContinue
+        } else {
+            New-Item -ItemType Directory -Force -Path $deployPath
+        }
+        
+        Write-Host "Publishing new files..."
+        dotnet publish -c Release -o $deployPath
 
-    # 🔥 3. PUBLISH (NOW SAFE)
-    - name: Publish
-      run: dotnet publish -c Release -o D:\Deploy\TestingCICD
-
-    # 🔥 4. START IIS
+    # 3. START IIS APP POOL
     - name: Start IIS App Pool
       run: |
         Import-Module WebAdministration
-        Start-WebAppPool -Name "TestingCICD"
+        $poolName = "TestingCICD"
+        if (Test-Path "IIS:\AppPools\$poolName") {
+            Write-Host "Starting App Pool: $poolName"
+            Start-WebAppPool -Name $poolName
+        }
+
+    # 4. VERIFY DEPLOYMENT
+    - name: Verify Status
+      run: |
+        Import-Module WebAdministration
+        Get-WebAppPoolState -Name "TestingCICD"
